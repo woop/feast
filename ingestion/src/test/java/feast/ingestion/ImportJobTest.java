@@ -32,14 +32,10 @@ import feast.core.StoreProto.Store.StoreType;
 import feast.core.StoreProto.Store.Subscription;
 import feast.ingestion.options.BZip2Compressor;
 import feast.ingestion.options.ImportOptions;
-import feast.ingestion.options.OptionByteConverter;
 import feast.storage.RedisProto.RedisKey;
 import feast.test.TestUtil;
-import feast.test.TestUtil.LocalKafka;
-import feast.test.TestUtil.LocalRedis;
 import feast.types.FeatureRowProto.FeatureRow;
 import feast.types.ValueProto.ValueType.Enum;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -51,7 +47,6 @@ import java.util.stream.IntStream;
 import org.apache.beam.sdk.PipelineResult;
 import org.apache.beam.sdk.PipelineResult.State;
 import org.apache.beam.sdk.options.PipelineOptionsFactory;
-import org.apache.commons.compress.compressors.bzip2.BZip2CompressorOutputStream;
 import org.apache.kafka.common.serialization.ByteArraySerializer;
 import org.joda.time.Duration;
 import org.junit.AfterClass;
@@ -67,7 +62,7 @@ public class ImportJobTest {
   private static final Logger LOGGER = LoggerFactory.getLogger(ImportJobTest.class.getName());
 
   private static final String KAFKA_HOST = "localhost";
-  private static final int KAFKA_PORT = 19092;
+  private static final int KAFKA_PORT = 9092;
   private static final String KAFKA_BOOTSTRAP_SERVERS = KAFKA_HOST + ":" + KAFKA_PORT;
   private static final short KAFKA_REPLICATION_FACTOR = 1;
   private static final String KAFKA_TOPIC = "topic_1";
@@ -94,21 +89,21 @@ public class ImportJobTest {
 
   @BeforeClass
   public static void setup() throws IOException, InterruptedException {
-    LocalKafka.start(
-        KAFKA_HOST,
-        KAFKA_PORT,
-        KAFKA_REPLICATION_FACTOR,
-        true,
-        ZOOKEEPER_HOST,
-        ZOOKEEPER_PORT,
-        ZOOKEEPER_DATA_DIR);
-    LocalRedis.start(REDIS_PORT);
+//    LocalKafka.start(
+//        KAFKA_HOST,
+//        KAFKA_PORT,
+//        KAFKA_REPLICATION_FACTOR,
+//        true,
+//        ZOOKEEPER_HOST,
+//        ZOOKEEPER_PORT,
+//        ZOOKEEPER_DATA_DIR);
+//    LocalRedis.start(REDIS_PORT);
   }
 
   @AfterClass
   public static void tearDown() {
-    LocalRedis.stop();
-    LocalKafka.stop();
+//    LocalRedis.stop();
+//    LocalKafka.stop();
   }
 
   @Test
@@ -172,7 +167,15 @@ public class ImportJobTest {
       return printer.print(option).getBytes();
     });
     options.setFeatureSetJson(compressor.compress(spec));
-    options.setStoreJson(Collections.singletonList(JsonFormat.printer().print(redis)));
+
+    Store sqlite = Store.newBuilder().setName("sqlite").setType(StoreType.SQLITE).addSubscriptions(
+        Subscription.newBuilder()
+            .setProject(spec.getProject())
+            .setName(spec.getName())
+            .setVersion(String.valueOf(spec.getVersion()))
+            .build()).build();
+
+    options.setStoreJson(Collections.singletonList(JsonFormat.printer().print(sqlite)));
     options.setProject("");
     options.setBlockOnRun(false);
 

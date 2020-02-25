@@ -33,6 +33,7 @@
         <module>core</module>
         <module>serving</module>
         <module>sdk/java</module>
+      <module>common</module>
     </modules>
 
     <properties>

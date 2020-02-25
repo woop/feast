@@ -58,7 +58,7 @@ public class JobServiceConfig {
                 storeOptions.get("host"),
                 Integer.parseInt(storeOptions.get("port")));
         return new RedisBackedJobService(jedisPool);
-      case INVALID:
+      case DEFAULT:
       case BIGQUERY:
       case CASSANDRA:
       case UNRECOGNIZED:

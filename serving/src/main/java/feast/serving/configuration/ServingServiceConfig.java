@@ -26,12 +26,16 @@ import feast.core.StoreProto.Store.RedisConfig;
 import feast.core.StoreProto.Store.Subscription;
 import feast.serving.FeastProperties;
 import feast.serving.service.BigQueryServingService;
+import feast.serving.service.SQLiteServingService;
 import feast.serving.service.JobService;
 import feast.serving.service.NoopJobService;
 import feast.serving.service.RedisServingService;
 import feast.serving.service.ServingService;
 import feast.serving.specs.CachedSpecService;
 import io.opentracing.Tracer;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.springframework.context.annotation.Bean;
@@ -123,11 +127,22 @@ public class ServingServiceConfig {
         break;
       case CASSANDRA:
       case UNRECOGNIZED:
-      case INVALID:
-        throw new IllegalArgumentException(
-            String.format(
-                "Unsupported store type '%s' for store name '%s'",
-                store.getType(), store.getName()));
+      case SQLITE:
+        // Default store is SQlite
+        // SQLite connection string
+        String url = "jdbc:sqlite:/home/willem/dump/sqldb/test.db";
+        Connection sqlConnection = null;
+        try {
+          sqlConnection = DriverManager.getConnection(url);
+        } catch (SQLException e) {
+          System.out.println(e.getMessage());
+        }
+
+        servingService = new SQLiteServingService(specService, sqlConnection);
+        break;
+      case UNDEFINED:
+
+
     }
 
     return servingService;

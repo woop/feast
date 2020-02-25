@@ -255,7 +255,8 @@ public class CachedSpecService {
       }
       return updateStoreResponse.getStore();
     } catch (Exception e) {
-      throw new RuntimeException("Unable to update store configuration", e);
+      return Store.newBuilder().build();
+//      throw new RuntimeException("Unable to update store configuration", e);
     }
   }
 }

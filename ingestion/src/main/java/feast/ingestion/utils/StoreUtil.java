@@ -43,6 +43,10 @@ import feast.core.StoreProto.Store;
 import feast.core.StoreProto.Store.RedisConfig;
 import feast.core.StoreProto.Store.StoreType;
 import feast.types.ValueProto.ValueType.Enum;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -112,6 +116,9 @@ public class StoreUtil {
             store.getBigqueryConfig().getProjectId(),
             store.getBigqueryConfig().getDatasetId(),
             BigQueryOptions.getDefaultInstance().getService());
+        break;
+      case SQLITE:
+        StoreUtil.setupSqliteOnline();
         break;
       default:
         log.warn("Store type '{}' is unsupported", storeType);
@@ -249,5 +256,22 @@ public class StoreUtil {
               redisConfig.getHost(), redisConfig.getPort()));
     }
     jedisPool.close();
+  }
+
+  public static void setupSqliteOnline() {
+
+    // TODO: THIS IS TEST CODE. NEVER COMMIT THIS!!!
+
+    String sql = "CREATE TABLE IF NOT EXISTS feature_rows (key varchar(1024) PRIMARY KEY NOT NULL, value text);";
+
+    String url = "jdbc:sqlite:/home/willem/dump/sqldb/test.db";
+
+    try (Connection conn = DriverManager.getConnection(url);
+        Statement stmt = conn.createStatement()) {
+      // create a new table
+      stmt.execute(sql);
+    } catch (SQLException e) {
+      System.out.println(e.getMessage());
+    }
   }
 }

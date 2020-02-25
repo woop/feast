@@ -31,8 +31,11 @@ import feast.store.serving.bigquery.FeatureRowToTableRow;
 import feast.store.serving.bigquery.GetTableDestination;
 import feast.store.serving.redis.FeatureRowToRedisMutationDoFn;
 import feast.store.serving.redis.RedisCustomIO;
+import feast.types.FeatureRowProto;
 import feast.types.FeatureRowProto.FeatureRow;
 import java.io.IOException;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
 import java.util.Map;
 import org.apache.beam.sdk.io.gcp.bigquery.BigQueryIO;
 import org.apache.beam.sdk.io.gcp.bigquery.BigQueryIO.Write.CreateDisposition;
@@ -41,12 +44,15 @@ import org.apache.beam.sdk.io.gcp.bigquery.BigQueryIO.Write.WriteDisposition;
 import org.apache.beam.sdk.io.gcp.bigquery.BigQueryInsertError;
 import org.apache.beam.sdk.io.gcp.bigquery.InsertRetryPolicy;
 import org.apache.beam.sdk.io.gcp.bigquery.WriteResult;
+import org.apache.beam.sdk.io.jdbc.JdbcIO;
 import org.apache.beam.sdk.metrics.Counter;
 import org.apache.beam.sdk.metrics.Metrics;
 import org.apache.beam.sdk.transforms.DoFn;
 import org.apache.beam.sdk.transforms.MapElements;
 import org.apache.beam.sdk.transforms.PTransform;
 import org.apache.beam.sdk.transforms.ParDo;
+import org.apache.beam.sdk.transforms.SimpleFunction;
+import org.apache.beam.sdk.values.KV;
 import org.apache.beam.sdk.values.PCollection;
 import org.apache.beam.sdk.values.PDone;
 import org.apache.beam.sdk.values.TypeDescriptors;
@@ -103,6 +109,28 @@ public abstract class WriteToStore extends PTransform<PCollection<FeatureRow>, P
                   .build());
         }
         break;
+      case SQLITE:
+        input
+            .apply(MapElements
+                .via(new SimpleFunction<FeatureRowProto.FeatureRow, KV<String, String>>() {
+                  @Override
+                  public KV<String, String> apply(FeatureRowProto.FeatureRow featureRow) {
+                    return KV
+                        .of(feast.store.serving.sqlite.FeatureRow.getKey(featureRow, getFeatureSets()).toString(), featureRow.toString());
+                  }
+                }))
+            .apply(JdbcIO.<KV<String, String>>write()
+                .withDataSourceConfiguration(JdbcIO.DataSourceConfiguration.create(
+                    "org.sqlite.JDBC", "jdbc:sqlite:/home/willem/dump/sqldb/test.db"))
+                .withStatement("INSERT OR REPLACE INTO feature_rows (key, value) VALUES (?, ?)")
+                .withPreparedStatementSetter(
+                    new JdbcIO.PreparedStatementSetter<KV<String, String>>() {
+                      public void setParameters(KV<String, String> element, PreparedStatement query)
+                          throws SQLException {
+                        query.setString(1, element.getKey());
+                        query.setString(2, element.getValue());
+                      }
+                    }));
       case BIGQUERY:
         BigQueryConfig bigqueryConfig = getStore().getBigqueryConfig();
 
