@@ -98,6 +98,8 @@ message Store {
     CASSANDRA = 3;
 
     REDIS_CLUSTER = 4;
+
+    SQLITE = 5;
   }
 
   message RedisConfig {
@@ -128,6 +130,12 @@ message Store {
     string connection_string = 1;
     int32 initial_backoff_ms = 2;
     int32 max_retries = 3;
+  }
+
+  message SqliteConfig {
+    string url = 1;
+    string class_name = 2;
+    int32 batch_size = 3;
   }
 
   message Subscription {
@@ -167,5 +175,6 @@ message Store {
     BigQueryConfig bigquery_config = 12;
     CassandraConfig cassandra_config = 13;
     RedisClusterConfig redis_cluster_config = 14;
+    SqliteConfig sqlite_config = 15;
   }
 }
