@@ -26,7 +26,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.google.protobuf.util.JsonFormat;
 import feast.proto.core.StoreProto;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.Positive;
@@ -262,6 +265,11 @@ public class FeastProperties {
               StoreProto.Store.CassandraConfig.newBuilder();
           JsonFormat.parser().merge(jsonWriter.writeValueAsString(config), cassandraConfig);
           return storeProtoBuilder.setCassandraConfig(cassandraConfig.build()).build();
+        case SQLITE:
+          StoreProto.Store.SqliteConfig.Builder sqliteConfig =
+              StoreProto.Store.SqliteConfig.newBuilder();
+          JsonFormat.parser().merge(jsonWriter.writeValueAsString(config), sqliteConfig);
+          return storeProtoBuilder.setSqliteConfig(sqliteConfig.build()).build();
         default:
           throw new InvalidProtocolBufferException("Invalid store set");
       }
