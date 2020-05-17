@@ -108,8 +108,8 @@ public class Store {
         RedisClusterConfig redisClusterConfig = RedisClusterConfig.parseFrom(config);
         return storeProtoBuilder.setRedisClusterConfig(redisClusterConfig).build();
       case JDBC:
-        JdbcConfig sqliteConfig = JdbcConfig.parseFrom(config);
-        return storeProtoBuilder.setJdbcConfig(sqliteConfig).build();
+        JdbcConfig jdbcConfig = JdbcConfig.parseFrom(config);
+        return storeProtoBuilder.setJdbcConfig(jdbcConfig).build();
       default:
         throw new InvalidProtocolBufferException("Invalid store set");
     }
