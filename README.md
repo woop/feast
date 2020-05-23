@@ -1,6 +1,7 @@
 
-![](docs/.gitbook/assets/feast_logo.png)
-
+<p align="center">
+  <img src="docs/.gitbook/assets/feast_logo.png" width="700">
+</p>
 <br />
 
 [![Unit Tests](https://github.com/feast-dev/feast/workflows/unit%20tests/badge.svg?branch=master)](https://github.com/feast-dev/feast/actions?query=workflow%3A%22unit+tests%22+branch%3Amaster)
