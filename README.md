@@ -1,6 +1,5 @@
-
 <p align="center">
-  <img src="docs/.gitbook/assets/feast_logo.png" width="700">
+  <img src="docs/.gitbook/assets/feast_logo.png" width="550">
 </p>
 <br />
 
