@@ -1,4 +1,7 @@
-# Feast - Feature Store for Machine Learning
+
+![](docs/.gitbook/assets/feast_logo.png)
+
+<br />
 
 [![Unit Tests](https://github.com/feast-dev/feast/workflows/unit%20tests/badge.svg?branch=master)](https://github.com/feast-dev/feast/actions?query=workflow%3A%22unit+tests%22+branch%3Amaster)
 ![Docker Compose Tests](https://github.com/feast-dev/feast/workflows/docker%20compose%20tests/badge.svg?branch=master)
