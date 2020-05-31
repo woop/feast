@@ -73,7 +73,7 @@ public class JdbcFeatureSink implements FeatureSink {
     this.subscribedFeatureSets.put(featureSetKey, featureSet);
 
     Connection conn = connect(this.getConfig());
-    if (tableExists(conn, this.getJdbcTemplater(), featureSetSpec)) {
+    if (tableExists(conn, featureSetSpec)) {
       updateTable(conn, this.getJdbcTemplater(), featureSetSpec);
     } else {
       createTable(conn, this.getJdbcTemplater(), featureSetSpec);
@@ -101,7 +101,7 @@ public class JdbcFeatureSink implements FeatureSink {
     log.info(String.format("Updating table for %s", featureSetName));
     try {
       // Get a list of existing columns in the table and their types
-      Map<String, String> existingColumns = getExistingColumns(conn, jdbcTemplater, featureSetSpec);
+      Map<String, String> existingColumns = getExistingColumns(conn, featureSetSpec);
 
       // Create a SQL migration query to add required columns that don't exist
       String tableMigrationSql =
@@ -121,11 +121,11 @@ public class JdbcFeatureSink implements FeatureSink {
   }
 
   private static Map<String, String> getExistingColumns(
-      Connection conn, JdbcTemplater jdbcTemplater, FeatureSetProto.FeatureSetSpec featureSetSpec) {
+      Connection conn, FeatureSetProto.FeatureSetSpec featureSetSpec) {
     Map<String, String> existingColumnsAndTypes = new HashMap<>();
     try {
       Statement st = conn.createStatement();
-      String tableName = jdbcTemplater.getTableName(featureSetSpec);
+      String tableName = JdbcTemplater.getTableName(featureSetSpec);
       ResultSet rs = st.executeQuery(String.format("SELECT * FROM %s WHERE 1 = 0", tableName));
       ResultSetMetaData rsmd = rs.getMetaData();
       for (int i = 1; i <= rsmd.getColumnCount(); i++) {
@@ -160,8 +160,8 @@ public class JdbcFeatureSink implements FeatureSink {
   }
 
   private static boolean tableExists(
-      Connection conn, JdbcTemplater jdbcTemplater, FeatureSetProto.FeatureSetSpec featureSetSpec) {
-    String tableName = jdbcTemplater.getTableName(featureSetSpec);
+      Connection conn, FeatureSetProto.FeatureSetSpec featureSetSpec) {
+    String tableName = JdbcTemplater.getTableName(featureSetSpec);
     String featureSetRef = getFeatureSetRef(featureSetSpec);
     try {
       if (tableName.isEmpty()) {

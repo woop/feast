@@ -27,9 +27,8 @@ import feast.storage.connectors.jdbc.common.JdbcTemplater;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Timestamp;
-import java.util.Base64;
-import java.util.HashMap;
-import java.util.Map;
+import java.time.Instant;
+import java.util.*;
 import java.util.stream.Collectors;
 import org.apache.beam.sdk.io.jdbc.JdbcIO;
 import org.apache.beam.sdk.transforms.DoFn;
@@ -189,12 +188,19 @@ public class JdbcWrite extends PTransform<PCollection<FeatureRowProto.FeatureRow
                                   Collectors.toMap(
                                       FieldProto.Field::getName, FieldProto.Field::getValue));
 
-                      // event_ts
-                      preparedStatement.setTimestamp(
-                          1, new Timestamp(element.getEventTimestamp().getSeconds() * 1000));
+                      // Set event_timestamp
+                      Instant eventTsInstant =
+                          Instant.ofEpochSecond(element.getEventTimestamp().getSeconds())
+                              .plusNanos(element.getEventTimestamp().getNanos());
 
-                      // created
-                      preparedStatement.setTimestamp(2, new Timestamp(System.currentTimeMillis()));
+                      preparedStatement.setTimestamp(
+                          1,
+                          Timestamp.from(eventTsInstant),
+                          Calendar.getInstance(TimeZone.getTimeZone("UTC")));
+
+                      // Set created_timestamp
+                      preparedStatement.setTimestamp(2, new Timestamp(System.currentTimeMillis()),
+                              Calendar.getInstance(TimeZone.getTimeZone("UTC")));
 
                       // entities
                       int counter = 3;
