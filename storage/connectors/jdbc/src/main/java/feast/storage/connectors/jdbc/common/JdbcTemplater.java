@@ -21,8 +21,10 @@ import java.io.Serializable;
 import java.util.Map;
 
 public interface JdbcTemplater extends Serializable {
-
-  String getTableName(FeatureSetProto.FeatureSetSpec featureSetSpec);
+  static String getTableName(FeatureSetProto.FeatureSetSpec featureSetSpec) {
+    return String.format("%s_%s", featureSetSpec.getProject(), featureSetSpec.getName())
+        .replaceAll("-", "_");
+  }
 
   String getTableCreationSql(FeatureSetProto.FeatureSetSpec featureSetSpec);
 
