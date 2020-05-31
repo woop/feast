@@ -1,0 +1,179 @@
+/*
+ * SPDX-License-Identifier: Apache-2.0
+ * Copyright 2018-2019 The Feast Authors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package feast.storage.connectors.jdbc.retriever;
+
+import com.google.protobuf.Duration;
+import com.mitchellbosecke.pebble.PebbleEngine;
+import com.mitchellbosecke.pebble.template.PebbleTemplate;
+import feast.proto.core.FeatureSetProto.EntitySpec;
+import feast.proto.core.FeatureSetProto.FeatureSetSpec;
+import feast.proto.serving.ServingAPIProto.FeatureReference;
+import feast.storage.api.retriever.FeatureSetRequest;
+import java.io.File;
+import java.io.IOException;
+import java.io.StringWriter;
+import java.io.Writer;
+import java.util.*;
+import java.util.stream.Collectors;
+
+public class QueryTemplater {
+
+  private static final PebbleEngine engine = new PebbleEngine.Builder().build();
+  private static final String FEATURESET_TEMPLATE_NAME =
+      "templates/single_featureset_pit_join_postgres.sql";
+  private static final String JOIN_TEMPLATE_NAME = "templates/join_featuresets_postgres.sql";
+
+  /**
+   * Get the query for retrieving the earliest and latest timestamps in the entity dataset.
+   *
+   * @param leftTableName full entity dataset name
+   * @return timestamp limit BQ SQL query
+   */
+  public static String createTimestampLimitQuery(String leftTableName) {
+    return String.format(
+        "SELECT max(event_timestamp) as max, min(event_timestamp) as min from %s", leftTableName);
+  }
+
+  public static String createEntityTableRowCountQuery(
+      String destinationTable, List<FeatureSetQueryInfo> featureSetQueryInfos) {
+    StringJoiner featureSetTableSelectJoiner = new StringJoiner(", ");
+    StringJoiner featureSetTableFromJoiner = new StringJoiner(" CROSS JOIN ");
+    Set<String> entities = new HashSet<>();
+    List<String> entityColumns = new ArrayList<>();
+    for (FeatureSetQueryInfo featureSetQueryInfo : featureSetQueryInfos) {
+      String table = featureSetQueryInfo.getFeatureSetTable();
+      for (String entity : featureSetQueryInfo.getEntities()) {
+        if (!entities.contains(entity)) {
+          entities.add(entity);
+          entityColumns.add(String.format("%s.%s", table, entity));
+        }
+      }
+      featureSetTableFromJoiner.add(table);
+    }
+    // Must preserve alphabetical order because column mapping isn't supported in COPY loads of CSV
+    entityColumns.sort(Comparator.comparing(entity -> entity.split("\\.")[0]));
+    entityColumns.forEach(featureSetTableSelectJoiner::add);
+
+    return String.format(
+        "CREATE TABLE \"%s\" AS (SELECT %s FROM %s WHERE 1 = 2); ALTER TABLE \"%s\" ADD COLUMN event_timestamp TIMESTAMP, ADD COLUMN row_number SERIAL;",
+        destinationTable, featureSetTableSelectJoiner, featureSetTableFromJoiner, destinationTable);
+  }
+
+  /**
+   * Generate the information necessary for the sql templating for point in time correctness join to
+   * the entity dataset for each feature set requested.
+   *
+   * @param featureSetRequests List of {@link FeatureSetRequest} containing a {@link FeatureSetSpec}
+   *     and its corresponding {@link FeatureReference}s provided by the user.
+   * @return List of FeatureSetInfos
+   */
+  public static List<FeatureSetQueryInfo> getFeatureSetInfos(
+      List<FeatureSetRequest> featureSetRequests) throws IllegalArgumentException {
+
+    List<FeatureSetQueryInfo> featureSetInfos = new ArrayList<>();
+    for (FeatureSetRequest featureSetRequest : featureSetRequests) {
+      FeatureSetSpec spec = featureSetRequest.getSpec();
+      Duration maxAge = spec.getMaxAge();
+      List<String> fsEntities =
+          spec.getEntitiesList().stream().map(EntitySpec::getName).collect(Collectors.toList());
+      List<FeatureReference> features = featureSetRequest.getFeatureReferences().asList();
+      featureSetInfos.add(
+          new FeatureSetQueryInfo(
+              spec.getProject(), spec.getName(), maxAge.getSeconds(), fsEntities, features));
+    }
+    return featureSetInfos;
+  }
+
+  /**
+   * Generate the query for point in time correctness join of data for a single feature set to the
+   * entity dataset.
+   *
+   * @param featureSetInfo Information about the feature set necessary for the query templating
+   * @param leftTableName entity dataset name
+   * @param minTimestamp earliest allowed timestamp for the historical data in feast
+   * @param maxTimestamp latest allowed timestamp for the historical data in feast
+   * @return point in time correctness join BQ SQL query
+   */
+  public static String createFeatureSetPointInTimeQuery(
+      FeatureSetQueryInfo featureSetInfo,
+      String leftTableName,
+      String minTimestamp,
+      String maxTimestamp)
+      throws IOException {
+
+    PebbleTemplate template = engine.getTemplate(FEATURESET_TEMPLATE_NAME);
+    Map<String, Object> context = new HashMap<>();
+    context.put("featureSet", featureSetInfo);
+
+    // TODO: Subtract max age to min timestamp
+    context.put("minTimestamp", minTimestamp);
+    context.put("maxTimestamp", maxTimestamp);
+    context.put("leftTableName", leftTableName);
+
+    Writer writer = new StringWriter();
+    template.evaluate(writer, context);
+    return writer.toString();
+  }
+
+  /**
+   * @param featureSetInfos List of FeatureSetInfos containing information about the feature set
+   *     necessary for the query templating
+   * @param entityTableColumnNames list of column names in entity table
+   * @param leftTableName entity dataset name
+   * @return query to join temporary feature set tables to the entity table
+   */
+  public static String createJoinQuery(
+      List<FeatureSetQueryInfo> featureSetInfos,
+      List<String> entityTableColumnNames,
+      String leftTableName) {
+    PebbleTemplate template = engine.getTemplate(JOIN_TEMPLATE_NAME);
+    Map<String, Object> context = new HashMap<>();
+    context.put("entities", entityTableColumnNames);
+    context.put("featureSets", featureSetInfos);
+    context.put("leftTableName", leftTableName);
+
+    Writer writer = new StringWriter();
+    try {
+      template.evaluate(writer, context);
+    } catch (IOException e) {
+      throw new RuntimeException(
+          String.format(
+              "Could not successfully template a join query to produce the final point-in-time result table. \nContext: %s",
+              context),
+          e);
+    }
+    return writer.toString();
+  }
+
+  public static String createLoadEntityQuery(
+      String destinationTable, String temporaryTable, File filePath) {
+    return String.format(
+        "CREATE TEMP TABLE %s AS (SELECT * FROM %s);"
+            + "ALTER TABLE %s DROP COLUMN row_number;"
+            + "COPY %s FROM '%s' DELIMITER E'\t' CSV HEADER;"
+            + "INSERT INTO %s SELECT * FROM %s;"
+            + "DROP TABLE %s;",
+        temporaryTable,
+        destinationTable,
+        temporaryTable,
+        temporaryTable,
+        filePath,
+        destinationTable,
+        temporaryTable,
+        temporaryTable);
+  }
+}
