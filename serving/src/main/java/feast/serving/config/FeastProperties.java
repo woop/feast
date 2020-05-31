@@ -265,11 +265,10 @@ public class FeastProperties {
               StoreProto.Store.CassandraConfig.newBuilder();
           JsonFormat.parser().merge(jsonWriter.writeValueAsString(config), cassandraConfig);
           return storeProtoBuilder.setCassandraConfig(cassandraConfig.build()).build();
-        case SQLITE:
-          StoreProto.Store.SqliteConfig.Builder sqliteConfig =
-              StoreProto.Store.SqliteConfig.newBuilder();
-          JsonFormat.parser().merge(jsonWriter.writeValueAsString(config), sqliteConfig);
-          return storeProtoBuilder.setSqliteConfig(sqliteConfig.build()).build();
+        case JDBC:
+          StoreProto.Store.JdbcConfig.Builder jdbcConfig = StoreProto.Store.JdbcConfig.newBuilder();
+          JsonFormat.parser().merge(jsonWriter.writeValueAsString(config), jdbcConfig);
+          return storeProtoBuilder.setJdbcConfig(jdbcConfig.build()).build();
         default:
           throw new InvalidProtocolBufferException("Invalid store set");
       }

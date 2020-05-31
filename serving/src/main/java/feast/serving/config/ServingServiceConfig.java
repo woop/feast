@@ -17,9 +17,10 @@
 package feast.serving.config;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.google.cloud.bigquery.Job;
 import com.google.protobuf.InvalidProtocolBufferException;
 import feast.proto.core.StoreProto;
-import feast.proto.serving.service.*;
+import feast.serving.service.*;
 import feast.serving.specs.CachedSpecService;
 import feast.storage.api.retriever.HistoricalRetriever;
 import feast.storage.api.retriever.OnlineRetriever;
@@ -60,16 +61,15 @@ public class ServingServiceConfig {
         servingService = new OnlineServingService(redisRetriever, specService, tracer);
         break;
       case BIGQUERY:
-        if (jobService.getClass() == NoopJobService.class) {
-          throw new IllegalArgumentException(
-              "Unable to instantiate JobService which is required by BigQueryHistoricalRetriever.");
-        }
+        validateJobServicePresence(jobService);
         HistoricalRetriever bqRetriever = BigQueryHistoricalRetriever.create(config);
         servingService = new HistoricalServingService(bqRetriever, specService, jobService);
         break;
-      case SQLITE:
-        HistoricalRetriever sqliteRetriever = JdbcHistoricalRetriever.create(config);
-        servingService = new HistoricalServingService(sqliteRetriever, specService, jobService);
+      case JDBC:
+        validateJobServicePresence(jobService);
+        HistoricalRetriever jdbcHistoricalRetriever = JdbcHistoricalRetriever.create(config);
+        servingService =
+            new HistoricalServingService(jdbcHistoricalRetriever, specService, jobService);
         break;
       case CASSANDRA:
       case UNRECOGNIZED:
@@ -81,5 +81,12 @@ public class ServingServiceConfig {
     }
 
     return servingService;
+  }
+
+  private void validateJobServicePresence(JobService jobService){
+    if (jobService.getClass() == NoopJobService.class) {
+      throw new IllegalArgumentException(
+              "Job service has not been instantiated. The Job service is required for all historical stores.");
+    }
   }
 }
