@@ -30,7 +30,7 @@ public class PostgresqlTypeUtil {
     VALUE_TYPE_TO_SQL_TYPE.put(ValueProto.ValueType.Enum.STRING, "TEXT");
     VALUE_TYPE_TO_SQL_TYPE.put(ValueProto.ValueType.Enum.INT32, "INTEGER");
     VALUE_TYPE_TO_SQL_TYPE.put(ValueProto.ValueType.Enum.INT64, "BIGINT");
-    VALUE_TYPE_TO_SQL_TYPE.put(ValueProto.ValueType.Enum.DOUBLE, "DOUBLE");
+    VALUE_TYPE_TO_SQL_TYPE.put(ValueProto.ValueType.Enum.DOUBLE, "DOUBLE PRECISION");
     VALUE_TYPE_TO_SQL_TYPE.put(ValueProto.ValueType.Enum.FLOAT, "FLOAT");
     VALUE_TYPE_TO_SQL_TYPE.put(ValueProto.ValueType.Enum.BOOL, "BOOLEAN");
     VALUE_TYPE_TO_SQL_TYPE.put(ValueProto.ValueType.Enum.BYTES_LIST, "TEXT");

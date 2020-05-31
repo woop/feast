@@ -38,7 +38,7 @@ public class PostgresqlTemplater implements JdbcTemplater {
     String createTableStatement =
         String.format(
             "CREATE TABLE IF NOT EXISTS %s (%s);",
-            getTableName(featureSetSpec), columnsAndTypesSQL);
+            JdbcTemplater.getTableName(featureSetSpec), columnsAndTypesSQL);
     log.debug(createTableStatement);
     return createTableStatement;
   }
@@ -68,7 +68,7 @@ public class PostgresqlTemplater implements JdbcTemplater {
   public String getTableMigrationSql(
       FeatureSetProto.FeatureSetSpec featureSetSpec, Map<String, String> existingColumns) {
     Map<String, String> requiredColumns = getRequiredColumns(featureSetSpec);
-    String tableName = getTableName(featureSetSpec);
+    String tableName = JdbcTemplater.getTableName(featureSetSpec);
 
     // Filter required columns down to only the ones that don't exist
     for (String existingColumn : existingColumns.keySet()) {
@@ -111,11 +111,7 @@ public class PostgresqlTemplater implements JdbcTemplater {
     }
 
     return String.format(
-        "INSERT INTO %s (%s) VALUES (%s)", getTableName(featureSetSpec), columnsSql, valueSql);
-  }
-
-  public String getTableName(FeatureSetProto.FeatureSetSpec featureSetSpec) {
-    return String.format("%s_%s", featureSetSpec.getProject(), featureSetSpec.getName())
-        .replaceAll("-", "_");
+        "INSERT INTO %s (%s) VALUES (%s)",
+        JdbcTemplater.getTableName(featureSetSpec), columnsSql, valueSql);
   }
 }
