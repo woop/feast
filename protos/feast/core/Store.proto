@@ -138,6 +138,7 @@ message Store {
     int32 batch_size = 3;
     string username = 4;
     string password = 5;
+    string staging_location = 6;
   }
 
   message Subscription {

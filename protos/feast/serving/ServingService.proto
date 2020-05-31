@@ -157,6 +157,7 @@ enum JobStatus {
 enum DataFormat {
     DATA_FORMAT_INVALID = 0;
     DATA_FORMAT_AVRO = 1;
+    DATA_FORMAT_CSV = 2;
 }
 
 message Job {
@@ -190,7 +191,7 @@ message DatasetSource {
         // accessible by this serving instance.
         repeated string file_uris = 1;
 
-        // Format of the data. Currently only avro is supported.
+        // Format of the data
         DataFormat data_format = 2;
     }
 
