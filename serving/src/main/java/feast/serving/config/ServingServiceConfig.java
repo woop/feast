@@ -17,7 +17,6 @@
 package feast.serving.config;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.google.cloud.bigquery.Job;
 import com.google.protobuf.InvalidProtocolBufferException;
 import feast.proto.core.StoreProto;
 import feast.serving.service.*;
@@ -83,10 +82,10 @@ public class ServingServiceConfig {
     return servingService;
   }
 
-  private void validateJobServicePresence(JobService jobService){
+  private void validateJobServicePresence(JobService jobService) {
     if (jobService.getClass() == NoopJobService.class) {
       throw new IllegalArgumentException(
-              "Job service has not been instantiated. The Job service is required for all historical stores.");
+          "Job service has not been instantiated. The Job service is required for all historical stores.");
     }
   }
 }

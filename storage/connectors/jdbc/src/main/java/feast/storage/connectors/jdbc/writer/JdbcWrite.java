@@ -199,8 +199,10 @@ public class JdbcWrite extends PTransform<PCollection<FeatureRowProto.FeatureRow
                           Calendar.getInstance(TimeZone.getTimeZone("UTC")));
 
                       // Set created_timestamp
-                      preparedStatement.setTimestamp(2, new Timestamp(System.currentTimeMillis()),
-                              Calendar.getInstance(TimeZone.getTimeZone("UTC")));
+                      preparedStatement.setTimestamp(
+                          2,
+                          new Timestamp(System.currentTimeMillis()),
+                          Calendar.getInstance(TimeZone.getTimeZone("UTC")));
 
                       // entities
                       int counter = 3;
