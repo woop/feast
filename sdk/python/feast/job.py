@@ -47,7 +47,7 @@ class RetrievalJob:
         """
         self.job_proto = job_proto
         self.serving_stub = serving_stub
-        # TODO: abstract away GCP depedency
+        # TODO: abstract away GCP dependency
         self.gcs_client = storage.Client(project=None)
 
     @property

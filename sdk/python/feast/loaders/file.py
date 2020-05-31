@@ -25,9 +25,11 @@ import pandas as pd
 from google.cloud import storage
 from pandavro import to_avro
 
+from feast.serving.ServingService_pb2 import DataFormat
+
 
 def export_source_to_staging_location(
-    source: Union[pd.DataFrame, str], staging_location_uri: str
+    source: Union[pd.DataFrame, str], staging_location_uri: str, data_format: DataFormat
 ) -> List[str]:
     """
     Uploads a DataFrame as an Avro file to a remote staging location.
@@ -51,6 +53,7 @@ def export_source_to_staging_location(
             Examples:
                 * gs://bucket/path/
                 * file:///data/subfolder/
+         data_format (DataFormat): Data format of files that are persisted in staging location during retrieval.
 
     Returns:
         List[str]:
@@ -69,7 +72,7 @@ def export_source_to_staging_location(
 
         # Remote gs staging location provided by serving
         dir_path, file_name, source_path = export_dataframe_to_local(
-            df=source, dir_path=uri_path
+            df=source, dir_path=uri_path, data_format=data_format
         )
     elif urlparse(source).scheme in ["", "file"]:
         # Local file provided as a source
@@ -98,6 +101,10 @@ def export_source_to_staging_location(
         upload_file_to_gcs(
             source_path, uri.hostname, str(uri.path).strip("/") + "/" + file_name
         )
+
+        # Clean up, remove local staging file
+        if dir_path and isinstance(source, pd.DataFrame) and len(str(dir_path)) > 4:
+            shutil.rmtree(dir_path)
     elif uri.scheme == "file":
         # Staging location is a file path
         # Used for end-to-end test
@@ -108,15 +115,13 @@ def export_source_to_staging_location(
             f"valid URI. Only gs:// and file:// uri scheme are supported."
         )
 
-    # Clean up, remove local staging file
-    if dir_path and isinstance(source, pd.DataFrame) and len(str(dir_path)) > 4:
-        shutil.rmtree(dir_path)
-
     return [staging_location_uri.rstrip("/") + "/" + file_name]
 
 
 def export_dataframe_to_local(
-    df: pd.DataFrame, dir_path: Optional[str] = None
+    df: pd.DataFrame,
+    dir_path: Optional[str] = None,
+    data_format: DataFormat = DataFormat.DATA_FORMAT_AVRO,
 ) -> Tuple[str, str, str]:
     """
     Exports a pandas DataFrame to the local filesystem.
@@ -127,6 +132,8 @@ def export_dataframe_to_local(
 
         dir_path (Optional[str]):
             Absolute directory path '/data/project/subfolder/'.
+
+        data_format: Format of file used during loading or retrieval
 
     Returns:
         Tuple[str, str, str]:
@@ -139,7 +146,7 @@ def export_dataframe_to_local(
     if dir_path is None:
         dir_path = tempfile.mkdtemp()
 
-    file_name = _get_file_name()
+    file_name = _get_file_name(data_format)
     dest_path = f"{dir_path}/{file_name}"
 
     # Temporarily rename datetime column to event_timestamp. Ideally we would
@@ -147,8 +154,25 @@ def export_dataframe_to_local(
     df.columns = ["event_timestamp" if col == "datetime" else col for col in df.columns]
 
     try:
+
         # Export dataset to file in local path
-        to_avro(df=df, file_path_or_buffer=dest_path)
+        if data_format == DataFormat.DATA_FORMAT_AVRO:
+            to_avro(df=df, file_path_or_buffer=dest_path)
+        elif data_format == DataFormat.DATA_FORMAT_CSV:
+            # TODO: Remove this hidden coupling to PostgreSQL "COPY"
+            # The following code orders columns alphabetically (with event_timestamp last). This allows the COPY
+            # method of PostgreSQL to map the CSV columns correctly when loading it
+            columns = sorted(df.columns)
+            columns.pop(columns.index("event_timestamp"))
+            df[columns + ["event_timestamp"]].to_csv(
+                dest_path,
+                sep="\t",
+                header=True,
+                index=False,
+                date_format="%Y-%m-%d %H:%M:%S",
+            )
+        else:
+            raise ValueError(f"Incorrect DataFormat provided: {data_format}")
     except Exception:
         raise
     finally:
@@ -224,13 +248,20 @@ def _get_files(bucket: str, uri: ParseResult) -> List[str]:
         raise Exception(f"{path} is not a wildcard path")
 
 
-def _get_file_name() -> str:
+def _get_file_name(data_format: DataFormat = DataFormat.DATA_FORMAT_AVRO) -> str:
     """
     Create a random file name.
 
     Returns:
         str:
             Randomised file name.
+            :param data_format: Format used to persist files during retrieval
     """
+    if data_format == DataFormat.DATA_FORMAT_AVRO:
+        extension = ".avro"
+    elif data_format == DataFormat.DATA_FORMAT_CSV:
+        extension = ".csv"
+    else:
+        raise ValueError(f"Could not determine DataFormat: {data_format}")
 
-    return f'{datetime.now().strftime("%d-%m-%Y_%I-%M-%S_%p")}_{str(uuid.uuid4())[:8]}.avro'
+    return f'{datetime.now().strftime("%d-%m-%Y_%I-%M-%S_%p")}_{str(uuid.uuid4())[:8]}{extension}'
