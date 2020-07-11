@@ -20,17 +20,31 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
+import org.junit.ClassRule;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.jwt.Jwt;
+import org.testcontainers.containers.DockerComposeContainer;
 
 class HttpAuthorizationProviderTest {
 
   HttpAuthorizationProvider provider;
 
+  private static int KETO_PORT = 4466;
+
+  @ClassRule
+  public static DockerComposeContainer environment =
+      new DockerComposeContainer(new File("src/test/resources/keto/docker-compose.yml"))
+          .withExposedService("keto_keto_1", KETO_PORT);
+
   @org.junit.jupiter.api.BeforeEach
   void setUp() {
+    String ketoExternalHost = environment.getServiceHost("keto_keto_1", KETO_PORT);
+    Integer ketoExternalPort = environment.getServicePort("keto_keto_1", KETO_PORT);
+    String ketoExternalUrl = String.format("http://%s:%s", ketoExternalHost, ketoExternalPort);
+
     Map<String, String> options = new HashMap<>();
     options.put("authorizationUrl", "http://localhost");
     provider = new HttpAuthorizationProvider(options);
