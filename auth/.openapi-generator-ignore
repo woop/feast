@@ -14,4 +14,5 @@ gradle-wrapper.*
 gradle**
 gradle/
 src/main/java/feast/auth/providers/http/HttpAuthorizationProvider.java
+src/test/java/feast/auth/providers/http/ketoadaptor/api/CheckAccessApiController.java
 src/main/AndroidManifest.xml

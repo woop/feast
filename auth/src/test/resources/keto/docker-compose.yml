@@ -1,26 +1,10 @@
 version: '3'
 services:
-  itest:
-    depends_on:
-      - keto
-      - db
-      - migrations
-    image: artifactory-gojek.golabs.io:6555/cx-go:1.13
-    environment:
-      - KETO_URL=http://keto:4466
-      - GOPROXY=https://goproxy.io
-      - GOPRIVATE=source.golabs.io
-    entrypoint:
-      - make
-      - it-test
-
   keto:
     depends_on:
       - db
       - migrations
     image: oryd/keto:v0.4.3-alpha.2
-    ports:
-      - 4466:4466
     environment:
       - DSN=postgres://keto:keto@db:5432/keto?sslmode=disable
     command:
