@@ -404,6 +404,7 @@
                         </googleJavaFormat>
                         <excludes>
                             <exclude>src/main/java/**/BatchLoadsWithResult.java</exclude>
+                            <exclude>src/test/java/feast/auth/providers/http/ketoadaptor/**/*.java</exclude>
                         </excludes>
                         <removeUnusedImports />
                     </java>

@@ -14,12 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package feast.auth.authorization;
+package feast.auth.providers.http;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import feast.auth.providers.http.HttpAuthorizationProvider;
+import feast.auth.providers.http.ketoadaptor.api.*;
 import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
@@ -44,6 +46,10 @@ class HttpAuthorizationProviderTest {
     String ketoExternalHost = environment.getServiceHost("keto_keto_1", KETO_PORT);
     Integer ketoExternalPort = environment.getServicePort("keto_keto_1", KETO_PORT);
     String ketoExternalUrl = String.format("http://%s:%s", ketoExternalHost, ketoExternalPort);
+
+    CheckAccessApi api = new CheckAccessApi() {
+    }
+
 
     Map<String, String> options = new HashMap<>();
     options.put("authorizationUrl", "http://localhost");

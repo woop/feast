@@ -14,12 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package feast.auth.authorization;
+package feast.auth.providers.http;
 
-import feast.auth.generated.client.api.DefaultApi;
-import feast.auth.generated.client.invoker.ApiClient;
-import feast.auth.generated.client.invoker.ApiException;
-import feast.auth.generated.client.model.CheckAccessRequest;
+import feast.auth.authorization.AuthorizationProvider;
+import feast.auth.authorization.AuthorizationResult;
+import feast.auth.providers.http.client.api.DefaultApi;
+import feast.auth.providers.http.client.invoker.ApiClient;
+import feast.auth.providers.http.client.invoker.ApiException;
+import feast.auth.providers.http.client.model.CheckAccessRequest;
 import java.util.Map;
 import org.hibernate.validator.internal.constraintvalidators.bv.EmailValidator;
 import org.slf4j.Logger;
@@ -80,7 +82,7 @@ public class HttpAuthorizationProvider implements AuthorizationProvider {
 
     try {
       // Make authorization request to external service
-      feast.auth.generated.client.model.AuthorizationResult authResult =
+      feast.auth.providers.http.client.model.AuthorizationResult authResult =
           defaultApiClient.checkAccessPost(checkAccessRequest);
       if (authResult == null) {
         throw new RuntimeException(
