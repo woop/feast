@@ -20,28 +20,25 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import static org.testcontainers.containers.wait.strategy.Wait.forHttp;
 
 import feast.auth.authorization.AuthorizationResult;
-
+import feast.auth.providers.http.ketoadaptor.invoker.OpenAPI2SpringBoot;
 import java.io.File;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-
-import feast.auth.providers.http.ketoadaptor.invoker.OpenAPI2SpringBoot;
 import org.junit.ClassRule;
 import org.junit.jupiter.api.TestInstance;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.testcontainers.containers.DockerComposeContainer;
-import org.testcontainers.containers.wait.Wait;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import sh.ory.keto.ApiClient;
 import sh.ory.keto.ApiException;
 import sh.ory.keto.Configuration;
 import sh.ory.keto.api.EnginesApi;
-import sh.ory.keto.model.AddOryAccessControlPolicyRoleMembersBody;
 import sh.ory.keto.model.OryAccessControlPolicy;
 import sh.ory.keto.model.OryAccessControlPolicyRole;
 
@@ -50,28 +47,25 @@ import sh.ory.keto.model.OryAccessControlPolicyRole;
 class HttpAuthorizationProviderTest {
 
   private static final String DEFAULT_FLAVOR = "glob";
-  HttpAuthorizationProvider provider;
-
-
-  String project = "myproject";
-  String subjectInProject = "good_member@example.com";
-  String subjectNotInProject = "good_member@example.com";
-  String subjectIsAdmin = "bossman@example.com";
-  String subjectClaim = "email";
-
-
   private static int KETO_PORT = 4466;
   private static int KETO_ADAPTOR_PORT = 45123;
 
+  String project = "myproject";
+  String subjectInProject = "good_member@example.com";
+  String subjectNotInProject = "bad_member@example.com";
+  String subjectIsAdmin = "bossman@example.com";
+  String subjectClaim = "email";
+
+  HttpAuthorizationProvider provider;
+
   @ClassRule
   public static DockerComposeContainer environment =
-          new DockerComposeContainer(new File("src/test/resources/keto/docker-compose.yml"))
-                  .withExposedService("keto_1", KETO_PORT, Wait.forHttp("/health/ready")
-                          .forStatusCode(200));
+      new DockerComposeContainer(new File("src/test/resources/keto/docker-compose.yml"))
+          .withExposedService("keto_1", KETO_PORT, forHttp("/health/ready").forStatusCode(200));
 
   @org.junit.jupiter.api.BeforeAll
   void setUp() throws Exception {
-   // Start Keto with Docker Compose
+    // Start Keto with Docker Compose
     environment.start();
     String ketoExternalHost = environment.getServiceHost("keto_1", KETO_PORT);
     Integer ketoExternalPort = environment.getServicePort("keto_1", KETO_PORT);
@@ -81,7 +75,8 @@ class HttpAuthorizationProviderTest {
     seedKeto(ketoExternalUrl);
 
     // Start Keto Adaptor server with Spring Boot
-    String[] args = new String[]{"--server.port=" + KETO_ADAPTOR_PORT, "--keto.url=" + ketoExternalUrl};
+    String[] args =
+        new String[] {"--server.port=" + KETO_ADAPTOR_PORT, "--keto.url=" + ketoExternalUrl};
     OpenAPI2SpringBoot.main(args);
 
     // Create HTTP Authorization provider that connects to Keto Adaptor
@@ -116,9 +111,7 @@ class HttpAuthorizationProviderTest {
     assertTrue(result.isAllowed());
   }
 
-  /**
-   * Creates a fake Authentication object that contains the user identity as a claim
-   */
+  /** Creates a fake Authentication object that contains the user identity as a claim */
   private Authentication getAuthentication(String subjectClaim, String subject) {
     Authentication authentication = mock(Authentication.class);
     Jwt principal = mock(Jwt.class);
@@ -152,14 +145,14 @@ class HttpAuthorizationProviderTest {
   private OryAccessControlPolicyRole getMyProjectMemberPolicyRole() {
     OryAccessControlPolicyRole role = new OryAccessControlPolicyRole();
     role.setId(String.format("roles:%s-project-members", project));
-    role.setMembers(Collections.singletonList(subjectInProject));
+    role.setMembers(Collections.singletonList("users:" + subjectInProject));
     return role;
   }
 
   private OryAccessControlPolicyRole getAdminPolicyRole() {
     OryAccessControlPolicyRole role = new OryAccessControlPolicyRole();
     role.setId("roles:admin");
-    role.setMembers(Collections.singletonList(subjectIsAdmin));
+    role.setMembers(Collections.singletonList("users:" + subjectIsAdmin));
     return role;
   }
 
@@ -178,7 +171,10 @@ class HttpAuthorizationProviderTest {
     OryAccessControlPolicy policy = new OryAccessControlPolicy();
     policy.setId(String.format("policies:%s-project-members-policy", project));
     policy.subjects(Collections.singletonList(String.format("roles:%s-project-members", project)));
-    policy.resources(Arrays.asList(String.format("resources:projects:%s", project), String.format("resources:projects:%s:**", project)));
+    policy.resources(
+        Arrays.asList(
+            String.format("resources:projects:%s", project),
+            String.format("resources:projects:%s:**", project)));
     policy.actions(Collections.singletonList("actions:**"));
     policy.effect("allow");
     policy.conditions(null);
