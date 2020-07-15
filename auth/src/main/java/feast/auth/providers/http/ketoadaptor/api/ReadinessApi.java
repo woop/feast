@@ -26,29 +26,29 @@ import javax.validation.constraints.*;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-@javax.annotation.Generated(value = "org.openapitools.codegen.languages.SpringCodegen", date = "2020-07-12T11:35:52.408245+08:00[Asia/Singapore]")
+@javax.annotation.Generated(value = "org.openapitools.codegen.languages.SpringCodegen", date = "2020-07-16T00:07:27.755245+08:00[Asia/Singapore]")
 
 @Validated
-@Api(value = "healthz", description = "the healthz API")
-public interface HealthzApi {
+@Api(value = "readiness", description = "the readiness API")
+public interface ReadinessApi {
 
     default Optional<NativeWebRequest> getRequest() {
         return Optional.empty();
     }
 
     /**
-     * GET /healthz
+     * GET /readiness
      *
-     * @return Online (status code 200)
-     *         or Offline (status code 500)
+     * @return Ready (status code 200)
+     *         or Not Ready (status code 500)
      */
-    @ApiOperation(value = "", nickname = "healthzGet", notes = "", tags={  })
+    @ApiOperation(value = "", nickname = "readinessGet", notes = "", tags={  })
     @ApiResponses(value = { 
-        @ApiResponse(code = 200, message = "Online"),
-        @ApiResponse(code = 500, message = "Offline") })
-    @RequestMapping(value = "/healthz",
+        @ApiResponse(code = 200, message = "Ready"),
+        @ApiResponse(code = 500, message = "Not Ready") })
+    @RequestMapping(value = "/readiness",
         method = RequestMethod.GET)
-    default ResponseEntity<Void> healthzGet() {
+    default ResponseEntity<Void> readinessGet() {
         return new ResponseEntity<>(HttpStatus.NOT_IMPLEMENTED);
 
     }

@@ -16,11 +16,11 @@
  */
 package feast.auth.providers.http.ketoadaptor.configuration;
 
+import javax.validation.constraints.NotBlank;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
-import javax.validation.constraints.NotBlank;
 
 @Getter
 @Setter
@@ -29,10 +29,8 @@ import javax.validation.constraints.NotBlank;
 public class KetoProperties {
 
   /** Instantiates a new Feast properties. */
-  public KetoProperties() {
-  }
+  public KetoProperties() {}
 
   /* Feast Core Build Version */
   @NotBlank public String url;
-
 }

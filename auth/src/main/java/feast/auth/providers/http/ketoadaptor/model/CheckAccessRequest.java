@@ -12,7 +12,7 @@ import javax.validation.constraints.*;
 /**
  * CheckAccessRequest
  */
-@javax.annotation.Generated(value = "org.openapitools.codegen.languages.SpringCodegen", date = "2020-07-12T11:35:52.408245+08:00[Asia/Singapore]")
+@javax.annotation.Generated(value = "org.openapitools.codegen.languages.SpringCodegen", date = "2020-07-16T00:07:27.755245+08:00[Asia/Singapore]")
 
 public class CheckAccessRequest   {
   @JsonProperty("action")

@@ -27,3 +27,13 @@ services:
       - migrate
       - sql
       - -e
+
+  adaptor:
+    depends_on:
+    - keto
+    image: gcr.io/kf-feast/feast-keto-auth-server:latest
+    environment:
+      SERVER_PORT: 8080
+      KETO_URL: http://keto:4466
+    ports:
+    - 8080

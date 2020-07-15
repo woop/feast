@@ -13,8 +13,10 @@
     <name>Feast Authentication and Authorization</name>
 
     <properties>
-        <feast.auth.providers.http.client.package.name>feast.auth.providers.http.client</feast.auth.providers.http.client.package.name>
-        <feast.auth.providers.http.testserver.package.name>feast.auth.providers.http.ketoadaptor</feast.auth.providers.http.testserver.package.name>
+        <feast.auth.providers.http.client.package.name>feast.auth.providers.http.client
+        </feast.auth.providers.http.client.package.name>
+        <feast.auth.providers.http.ketoadaptor.package.name>feast.auth.providers.http.ketoadaptor
+        </feast.auth.providers.http.ketoadaptor.package.name>
         <gson-fire-version>1.8.4</gson-fire-version>
         <swagger-core-version>1.5.24</swagger-core-version>
         <okhttp-version>3.14.7</okhttp-version>
@@ -176,7 +178,6 @@
             <groupId>sh.ory.keto</groupId>
             <artifactId>keto-client</artifactId>
             <version>0.4.4-alpha.1</version>
-            <scope>test</scope>
         </dependency>
     </dependencies>
     <build>
@@ -218,10 +219,11 @@
                         <configuration>
                             <inputSpec>${project.basedir}/src/main/resources/api.yaml</inputSpec>
                             <generatorName>spring</generatorName>
-                            <packageName>${feast.auth.providers.http.testserver.package.name}</packageName>
-                            <modelPackage>${feast.auth.providers.http.testserver.package.name}.model</modelPackage>
-                            <apiPackage>${feast.auth.providers.http.testserver.package.name}.api</apiPackage>
-                            <invokerPackage>${feast.auth.providers.http.testserver.package.name}.invoker</invokerPackage>
+                            <packageName>${feast.auth.providers.http.ketoadaptor.package.name}</packageName>
+                            <modelPackage>${feast.auth.providers.http.ketoadaptor.package.name}.model</modelPackage>
+                            <apiPackage>${feast.auth.providers.http.ketoadaptor.package.name}.api</apiPackage>
+                            <invokerPackage>${feast.auth.providers.http.ketoadaptor.package.name}.invoker
+                            </invokerPackage>
                             <output>${project.basedir}</output>
                             <addCompileSourceRoot>false</addCompileSourceRoot>
                             <generateModelDocumentation>false</generateModelDocumentation>
@@ -234,8 +236,9 @@
                                 <dateLibrary>java8</dateLibrary>
                                 <licenseName>Apache 2.0</licenseName>
                                 <licenseUrl>https://www.apache.org/licenses/LICENSE-2.0</licenseUrl>
-                                <sourceFolder>src/test/java</sourceFolder>
-                                <configPackage>${feast.auth.providers.http.testserver.package.name}.configuration</configPackage>
+                                <sourceFolder>src/main/java</sourceFolder>
+                                <configPackage>${feast.auth.providers.http.ketoadaptor.package.name}.configuration
+                                </configPackage>
                             </configOptions>
                         </configuration>
                     </execution>
@@ -248,6 +251,15 @@
                 <artifactId>maven-javadoc-plugin</artifactId>
                 <configuration>
                     <excludePackageNames>feast.auth.generated.client.api</excludePackageNames>
+                </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.0.0-M4</version>
+                <configuration>
+                    <argLine>-Xms2048m -Xmx2048m -Djdk.net.URLClassPath.disableClassPathURLCheck=true</argLine>
                 </configuration>
             </plugin>
         </plugins>

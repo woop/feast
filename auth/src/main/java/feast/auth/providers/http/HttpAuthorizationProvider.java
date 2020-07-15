@@ -43,7 +43,7 @@ public class HttpAuthorizationProvider implements AuthorizationProvider {
    * The default subject claim is the key within the Authentication object where the user's identity
    * can be found
    */
-  private final String DEFAULT_SUBJECT_CLAIM = "email";
+  private final String subjectClaim;
 
   /**
    * Initializes the HTTPAuthorizationProvider
@@ -56,6 +56,8 @@ public class HttpAuthorizationProvider implements AuthorizationProvider {
       throw new IllegalArgumentException(
           "Cannot pass empty or null options to HTTPAuthorizationProvider");
     }
+
+    subjectClaim = options.get("subjectClaim");
 
     ApiClient apiClient = new ApiClient();
     apiClient.setBasePath(options.get("authorizationUrl"));
@@ -73,7 +75,7 @@ public class HttpAuthorizationProvider implements AuthorizationProvider {
 
     CheckAccessRequest checkAccessRequest = new CheckAccessRequest();
     Object context = getContext(authentication);
-    String subject = getSubjectFromAuth(authentication, DEFAULT_SUBJECT_CLAIM);
+    String subject = getSubjectFromAuth(authentication, subjectClaim);
     String resource = "projects:" + projectId;
     checkAccessRequest.setAction("ALL");
     checkAccessRequest.setContext(context);
@@ -125,9 +127,17 @@ public class HttpAuthorizationProvider implements AuthorizationProvider {
   private String getSubjectFromAuth(Authentication authentication, String subjectClaim) {
     Jwt principle = ((Jwt) authentication.getPrincipal());
     Map<String, Object> claims = principle.getClaims();
+
+    if (!claims.containsKey(subjectClaim)) {
+      throw new RuntimeException(
+          String.format(
+              "Could not find key \"%s\" as a claim in the authentication object of incoming request.",
+              subjectClaim));
+    }
+
     String subjectValue = (String) claims.get(subjectClaim);
 
-    if (subjectValue.isEmpty()) {
+    if (subjectValue == null || subjectValue.isEmpty()) {
       throw new IllegalStateException(
           String.format("JWT does not have a valid claim %s.", subjectClaim));
     }

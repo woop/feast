@@ -64,6 +64,7 @@
         <!-- Force log4j2 to 2.11+ to support objectMessageAsJsonObject -->
         <log4jVersion>2.12.1</log4jVersion>
         <flyway.version>5.2.4</flyway.version>
+        <skip.unit.tests>false</skip.unit.tests>
     </properties>
 
     <organization>
@@ -134,19 +135,19 @@
             </dependency>
 
             <dependency>
-              <groupId>io.opencensus</groupId>
-              <artifactId>opencensus-api</artifactId>
-              <version>${opencensus.version}</version>
+                <groupId>io.opencensus</groupId>
+                <artifactId>opencensus-api</artifactId>
+                <version>${opencensus.version}</version>
             </dependency>
             <dependency>
-              <groupId>io.opencensus</groupId>
-              <artifactId>opencensus-contrib-grpc-util</artifactId>
-              <version>${opencensus.version}</version>
+                <groupId>io.opencensus</groupId>
+                <artifactId>opencensus-contrib-grpc-util</artifactId>
+                <version>${opencensus.version}</version>
             </dependency>
             <dependency>
-              <groupId>io.opencensus</groupId>
-              <artifactId>opencensus-contrib-http-util</artifactId>
-              <version>${opencensus.version}</version>
+                <groupId>io.opencensus</groupId>
+                <artifactId>opencensus-contrib-http-util</artifactId>
+                <version>${opencensus.version}</version>
             </dependency>
 
             <!-- gRPC -->
@@ -208,9 +209,9 @@
 
             <!-- Other Stuff -->
             <dependency>
-              <groupId>com.datadoghq</groupId>
-              <artifactId>java-dogstatsd-client</artifactId>
-              <version>2.6.1</version>
+                <groupId>com.datadoghq</groupId>
+                <artifactId>java-dogstatsd-client</artifactId>
+                <version>2.6.1</version>
             </dependency>
             <dependency>
                 <groupId>com.google.guava</groupId>
@@ -377,8 +378,8 @@
                 <configuration>
                     <java>
                         <licenseHeader>
-                          <content>
-<![CDATA[
+                            <content>
+                                <![CDATA[
 /*
  * SPDX-License-Identifier: Apache-2.0
  * Copyright 2018-$YEAR The Feast Authors
@@ -396,7 +397,7 @@
  * limitations under the License.
  */
 ]]>
-                          </content>
+                            </content>
                         </licenseHeader>
                         <googleJavaFormat>
                             <version>1.7</version>
@@ -404,21 +405,21 @@
                         </googleJavaFormat>
                         <excludes>
                             <exclude>src/main/java/**/BatchLoadsWithResult.java</exclude>
-                            <exclude>src/test/java/feast/auth/providers/http/ketoadaptor/**/*.java</exclude>
+                            <exclude>src/main/java/feast/auth/providers/http/ketoadaptor/**/*.java</exclude>
                         </excludes>
-                        <removeUnusedImports />
+                        <removeUnusedImports/>
                     </java>
                 </configuration>
                 <executions>
-                  <!-- Move check to fail faster, but after compilation. Default is verify phase -->
-                  <execution>
-                      <id>spotless-check</id>
-                      <phase>process-test-classes</phase>
-                      <goals>
-                          <goal>check</goal>
-                      </goals>
-                  </execution>
-              </executions>
+                    <!-- Move check to fail faster, but after compilation. Default is verify phase -->
+                    <execution>
+                        <id>spotless-check</id>
+                        <phase>process-test-classes</phase>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -453,7 +454,7 @@
                                 <requireJavaVersion>
                                     <version>[11.0,)</version>
                                 </requireJavaVersion>
-                                <reactorModuleConvergence />
+                                <reactorModuleConvergence/>
                             </rules>
                         </configuration>
                     </execution>
@@ -464,7 +465,7 @@
                         </goals>
                         <configuration>
                             <rules>
-                                <banDuplicatePomDependencyVersions />
+                                <banDuplicatePomDependencyVersions/>
                             </rules>
                         </configuration>
                     </execution>
@@ -488,10 +489,9 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>3.0.0-M4</version>
                 <configuration>
-                    <argLine>@{argLine} -Xms2048m -Xmx2048m -Djdk.net.URLClassPath.disableClassPathURLCheck=true</argLine>
-                    <excludes>
-                        <groups>IntegrationTest</groups>
-                    </excludes>
+                    <argLine>@{argLine} -Xms2048m -Xmx2048m -Djdk.net.URLClassPath.disableClassPathURLCheck=true
+                    </argLine>
+                    <skipTests>${skip.unit.tests}</skipTests>
                 </configuration>
             </plugin>
             <plugin>
@@ -582,6 +582,19 @@
                     </execution>
                 </executions>
             </plugin>
+            <plugin>
+                <artifactId>maven-failsafe-plugin</artifactId>
+                <groupId>org.apache.maven.plugins</groupId>
+                <version>3.0.0-M5</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>integration-test</goal>
+                            <goal>verify</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
         </plugins>
 
         <pluginManagement>
@@ -657,6 +670,11 @@
                     <groupId>org.xolstice.maven.plugins</groupId>
                     <artifactId>protobuf-maven-plugin</artifactId>
                     <version>0.6.1</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-failsafe-plugin</artifactId>
+                    <version>3.0.0-M5</version>
                 </plugin>
             </plugins>
         </pluginManagement>
