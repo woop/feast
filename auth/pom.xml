@@ -61,10 +61,6 @@
             <artifactId>jackson-databind</artifactId>
         </dependency>
         <dependency>
-            <groupId>junit</groupId>
-            <artifactId>junit</artifactId>
-        </dependency>
-        <dependency>
             <groupId>io.swagger</groupId>
             <artifactId>swagger-annotations</artifactId>
             <version>${swagger-core-version}</version>
@@ -94,41 +90,6 @@
             <groupId>com.google.code.findbugs</groupId>
             <artifactId>jsr305</artifactId>
             <version>3.0.2</version>
-        </dependency>
-        <dependency>
-            <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter-api</artifactId>
-            <version>5.4.2</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter-params</artifactId>
-            <version>5.4.2</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter-engine</artifactId>
-            <version>5.4.2</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.mockito</groupId>
-            <artifactId>mockito-core</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.testcontainers</groupId>
-            <artifactId>testcontainers</artifactId>
-            <version>1.14.3</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.testcontainers</groupId>
-            <artifactId>junit-jupiter</artifactId>
-            <version>1.14.3</version>
-            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -174,11 +135,6 @@
                 </exclusion>
             </exclusions>
         </dependency>
-        <dependency>
-            <groupId>sh.ory.keto</groupId>
-            <artifactId>keto-client</artifactId>
-            <version>0.4.4-alpha.1</version>
-        </dependency>
     </dependencies>
     <build>
         <plugins>
@@ -211,39 +167,6 @@
                             </configOptions>
                         </configuration>
                     </execution>
-                    <execution>
-                        <id>ketoadaptor</id>
-                        <goals>
-                            <goal>generate</goal>
-                        </goals>
-                        <configuration>
-                            <inputSpec>${project.basedir}/src/main/resources/api.yaml</inputSpec>
-                            <generatorName>spring</generatorName>
-                            <packageName>${feast.auth.providers.http.ketoadaptor.package.name}</packageName>
-                            <modelPackage>${feast.auth.providers.http.ketoadaptor.package.name}.model</modelPackage>
-                            <apiPackage>${feast.auth.providers.http.ketoadaptor.package.name}.api</apiPackage>
-                            <invokerPackage>${feast.auth.providers.http.ketoadaptor.package.name}.invoker
-                            </invokerPackage>
-                            <output>${project.basedir}</output>
-                            <addCompileSourceRoot>false</addCompileSourceRoot>
-                            <generateModelDocumentation>false</generateModelDocumentation>
-                            <generateApiDocumentation>false</generateApiDocumentation>
-                            <configOptions>
-                                <groupId>${project.groupId}</groupId>
-                                <artifactId>${project.artifactId}</artifactId>
-                                <artifactVersion>${project.version}</artifactVersion>
-                                <java8>true</java8>
-                                <dateLibrary>java8</dateLibrary>
-                                <licenseName>Apache 2.0</licenseName>
-                                <licenseUrl>https://www.apache.org/licenses/LICENSE-2.0</licenseUrl>
-                                <sourceFolder>src/main/java</sourceFolder>
-                                <configPackage>${feast.auth.providers.http.ketoadaptor.package.name}.configuration
-                                </configPackage>
-                            </configOptions>
-                        </configuration>
-                    </execution>
-
-
                 </executions>
             </plugin>
             <plugin>
@@ -253,7 +176,6 @@
                     <excludePackageNames>feast.auth.generated.client.api</excludePackageNames>
                 </configuration>
             </plugin>
-
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>

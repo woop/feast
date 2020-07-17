@@ -1,6 +1,6 @@
 /*
  * SPDX-License-Identifier: Apache-2.0
- * Copyright 2018-2019 The Feast Authors
+ * Copyright 2018-2020 The Feast Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,23 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package feast.auth.providers.http.ketoadaptor.configuration;
+package feast.core.auth;
 
-import javax.validation.constraints.NotBlank;
-import lombok.Getter;
-import lombok.Setter;
-import org.springframework.boot.context.properties.ConfigurationProperties;
+import net.devh.boot.grpc.server.autoconfigure.GrpcServerAutoConfiguration;
+import net.devh.boot.grpc.server.autoconfigure.GrpcServerFactoryAutoConfiguration;
+import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
+import org.springframework.boot.autoconfigure.domain.EntityScan;
+import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 
-@Getter
-@Setter
 @Configuration
-@ConfigurationProperties(prefix = "keto", ignoreInvalidFields = false)
-public class KetoProperties {
-
-  /** Instantiates a new Feast properties. */
-  public KetoProperties() {}
-
-  /* Feast Core Build Version */
-  @NotBlank public String url;
-}
+@ImportAutoConfiguration({
+  GrpcServerAutoConfiguration.class,
+  GrpcServerFactoryAutoConfiguration.class
+})
+@ComponentScan("feast.core")
+@EntityScan("feast.core.model")
+public class CoreServiceAuthConfig {}

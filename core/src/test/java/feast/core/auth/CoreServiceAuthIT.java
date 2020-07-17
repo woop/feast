@@ -46,10 +46,15 @@ import java.util.HashMap;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.util.TestPropertyValues;
+import org.springframework.context.ApplicationContextInitializer;
+import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
 import org.testcontainers.containers.*;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import sh.ory.keto.ApiClient;
@@ -62,6 +67,9 @@ import sh.ory.keto.model.OryAccessControlPolicyRole;
 @Testcontainers
 @DirtiesContext
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
+@SpringBootTest(classes = CoreApplication.class)
+@SpringJUnitConfig(classes = {CoreServiceAuthConfig.class})
+@ContextConfiguration(initializers = {CoreServiceAuthIT.Initializer.class})
 public class CoreServiceAuthIT {
 
   public CoreServiceAuthIT() {}
@@ -93,90 +101,80 @@ public class CoreServiceAuthIT {
   @ClassRule
   public static DockerComposeContainer environment =
       new DockerComposeContainer(new File("src/test/resources/keto/docker-compose.yml"))
-          .withExposedService("adaptor_1", KETO_ADAPTOR_PORT, forHttp("/").forStatusCode(200))
+          .withExposedService("adaptor_1", KETO_ADAPTOR_PORT)
           .withExposedService("keto_1", KETO_PORT, forHttp("/health/ready").forStatusCode(200));
 
-  @BeforeAll
-  static void setUp() throws Exception {
-    // Prevent Spring devtools from restarting application
-    System.setProperty("spring.devtools.restart.enabled", "false");
+  static class Initializer
+      implements ApplicationContextInitializer<ConfigurableApplicationContext> {
+    public void initialize(ConfigurableApplicationContext configurableApplicationContext) {
+      // Prevent Spring devtools from restarting application
+      System.setProperty("spring.devtools.restart.enabled", "false");
 
-    // Start Keto and with Docker Compose
-    environment.start();
+      // Start Keto and with Docker Compose
+      environment.start();
 
-    // Seed Keto with data
-    String ketoExternalHost = environment.getServiceHost("keto_1", KETO_PORT);
-    Integer ketoExternalPort = environment.getServicePort("keto_1", KETO_PORT);
-    String ketoExternalUrl = String.format("http://%s:%s", ketoExternalHost, ketoExternalPort);
-    seedKeto(ketoExternalUrl);
+      // Seed Keto with data
+      String ketoExternalHost = environment.getServiceHost("keto_1", KETO_PORT);
+      Integer ketoExternalPort = environment.getServicePort("keto_1", KETO_PORT);
+      String ketoExternalUrl = String.format("http://%s:%s", ketoExternalHost, ketoExternalPort);
+      try {
+        seedKeto(ketoExternalUrl);
+      } catch (ApiException e) {
+        throw new RuntimeException(String.format("Could not seed Keto store %s", ketoExternalUrl));
+      }
 
-    // Start Keto Adaptor server with Spring Boot
-    //    OpenAPI2SpringBoot.main(
-    //        new String[] {
-    //          "--server.port=" + KETO_ADAPTOR_PORT,
-    //          "--keto.url=" + ketoExternalUrl,
-    //          "--spring.autoconfigure.exclude="
-    //              + "net.devh.boot.grpc.server.autoconfigure.GrpcServerMetricAutoConfiguration,"
-    //              + "org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration,"
-    //              +
-    // "org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration,"
-    //              +
-    // "org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration,feast.core,"
-    //              + "net.devh.boot.grpc.server.autoconfigure.GrpcServerAutoConfiguration,"
-    //              + "net.devh.boot.grpc.server.autoconfigure.GrpcServerFactoryAutoConfiguration,"
-    //              +
-    // "org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration"
-    //        });
+      // Start postgres
+      postgres.start();
 
-    // Start postgres
-    postgres.start();
+      // Start Kafka
+      kafka.start();
 
-    // Start Kafka
-    kafka.start();
+      // Set up Jwt Helper to generate keys and sign authentication requests
+      try {
+        jwtHelper = new JwtHelper();
+      } catch (JOSEException e) {
+        throw new RuntimeException("Could not set up JwtHelper");
+      }
 
-    // Set up Jwt Helper to generate keys and sign authentication requests
-    jwtHelper = new JwtHelper();
+      // Start Wiremock Server to act as fake JWKS server
+      wireMockRule.start();
+      JWKSet keySet = jwtHelper.getKeySet();
+      String jwksJson = String.valueOf(keySet.toPublicJWKSet().toJSONObject());
 
-    // Create insecure Feast Core gRPC client
-    Channel insecureChannel =
-        ManagedChannelBuilder.forAddress("localhost", FEAST_CORE_PORT).usePlaintext().build();
-    insecureCoreService = CoreServiceGrpc.newBlockingStub(insecureChannel);
+      // When Feast Core looks up a Json Web Token Key Set, we provide our self-signed public key
+      wireMockRule.stubFor(
+          WireMock.get(WireMock.urlPathEqualTo("/.well-known/jwks.json"))
+              .willReturn(
+                  WireMock.aResponse()
+                      .withStatus(200)
+                      .withHeader("Content-Type", "application/json")
+                      .withBody(jwksJson)));
 
-    // Start Wiremock Server to act as fake JWKS server
-    wireMockRule.start();
-    JWKSet keySet = jwtHelper.getKeySet();
-    String jwksJson = String.valueOf(keySet.toPublicJWKSet().toJSONObject());
+      // Get Keto Authorization Server (Adaptor) url
+      String ketoAdaptorHost = environment.getServiceHost("adaptor_1", KETO_ADAPTOR_PORT);
+      Integer ketoAdaptorPort = environment.getServicePort("adaptor_1", KETO_ADAPTOR_PORT);
+      String ketoAdaptorUrl = String.format("http://%s:%s", ketoAdaptorHost, ketoAdaptorPort);
 
-    // When Feast Core looks up a Json Web Token Key Set, we provide our self-signed public key
-    wireMockRule.stubFor(
-        WireMock.get(WireMock.urlPathEqualTo("/.well-known/jwks.json"))
-            .willReturn(
-                WireMock.aResponse()
-                    .withStatus(200)
-                    .withHeader("Content-Type", "application/json")
-                    .withBody(jwksJson)));
+      TestPropertyValues.of(
+              "spring.datasource.url=" + postgres.getJdbcUrl(),
+              "spring.datasource.username=" + postgres.getUsername(),
+              "spring.datasource.password=" + postgres.getPassword(),
+              "feast.stream.options.bootstrapServers=" + kafka.getBootstrapServers(),
+              "feast.security.authentication.enabled=true",
+              "feast.security.authorization.enabled=true",
+              "feast.security.authorization.provider=http",
+              "feast.security.authorization.options.subjectClaim=" + subjectClaim,
+              "feast.security.authorization.options.authorizationUrl=" + ketoAdaptorUrl,
+              String.format(
+                  "feast.security.authentication.options.jwkEndpointURI=http://localhost:%s/.well-known/jwks.json",
+                  wireMockRule.port()))
+          .applyTo(configurableApplicationContext.getEnvironment());
 
-    // Get Keto Authorization Server (Adaptor) url
-    String ketoAdaptorHost = environment.getServiceHost("adaptor_1", KETO_ADAPTOR_PORT);
-    Integer ketoAdaptorPort = environment.getServicePort("adaptor_1", KETO_ADAPTOR_PORT);
-    String ketoAdaptorUrl = String.format("http://%s:%s", ketoAdaptorHost, ketoAdaptorPort);
-
-    // Start Feast Core
-    CoreApplication.main(
-        new String[] {
-          "--spring.datasource.url=" + postgres.getJdbcUrl(),
-          "--spring.datasource.username=" + postgres.getUsername(),
-          "--spring.datasource.password=" + postgres.getPassword(),
-          "--feast.security.authentication.enabled=true",
-          String.format(
-              "--feast.security.authentication.options.jwkEndpointURI=http://localhost:%s/.well-known/jwks.json",
-              wireMockRule.port()),
-          "--feast.security.authorization.enabled=true",
-          "--feast.security.authorization.provider=http",
-          "--feast.security.authorization.options.subjectClaim=" + subjectClaim,
-          "--feast.security.authorization.options.authorizationUrl=" + ketoAdaptorUrl,
-          "--feast.stream.options.bootstrapServers=" + kafka.getBootstrapServers()
-        });
+      // Create insecure Feast Core gRPC client
+      Channel insecureChannel =
+          ManagedChannelBuilder.forAddress("localhost", FEAST_CORE_PORT).usePlaintext().build();
+      insecureCoreService = CoreServiceGrpc.newBlockingStub(insecureChannel);
+    }
   }
 
   @AfterAll
